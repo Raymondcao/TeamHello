@@ -31,11 +31,11 @@ def testCase3():
     basePath = ""
     configFile = open(CONFIGFILENAME, 'r')
     for line in configFile:
-        tokens = line.lstrip(' ')
+        tokens = line.lstrip(' \t')
+        tokens = tokens.rstrip('\r\n;')
         tokens = re.split(' ', tokens)
         if tokens[0] == "base-path" or tokens[0] == "root":
-            
-            basePath = tokens[1].replace(";\n", "")
+            basePath = tokens[1]
             break;
     configFile.close()
     testFile = open(basePath + "/b.txt", 'w')
