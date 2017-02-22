@@ -16,7 +16,7 @@ class session;
 Server* Server::serverBuilder(const NginxConfig& config_out)
 {
     configArguments configContents;
-    int configParsingErrorCode = parseConfig(config_out, configContents);
+    int configParsingErrorCode = Server::parseConfig(config_out, configContents);
     if (configParsingErrorCode != 0)
     {
         return nullptr;
@@ -102,7 +102,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
             std::string header = config_out.statements_[i]->tokens_[0];
             if (header == "path" && config_out.statements_[i]->tokens_[2] == it->first)
             {
-                if (std::find(eliminate[it->first].begin(), eliminate[it->first].end(), config_out.statements_[i]->tokens_[1]) == eliminate.end())
+                if (std::find(eliminate[it->first].begin(), eliminate[it->first].end(), config_out.statements_[i]->tokens_[1]) == eliminate[it->first].end())
                 {
                     auto handler = RequestHandler::CreateByName(it->first);
                     Status s = handler->Init(config_out.statements_[i]->tokens_[1], *(config_out.statements_[i]->child_block.get()));
