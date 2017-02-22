@@ -106,12 +106,12 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
                 {
                     auto handler = RequestHandler::CreateByName(it->first);
                     Status s = handler->Init(config_out.statements_[i]->tokens_[1], *(config_out.statements_[i]->child_block.get()));
-                    if (s != OK)
+                    if (s != RequestHandler::Status::OK)
                     {
                         std::cerr << "Error: failed to initialize request handler " << it->first << " for " << config_out.statements_[i]->tokens_[1] << ".\n";
                         return 8;
                     }
-                    configArgs.handlerMapping[config_out.statements_[i]->tokens_[1]] = handler;
+                    (configArgs.handlerMapping)[config_out.statements_[i]->tokens_[1]] = handler;
                 }
             }
         }
@@ -146,7 +146,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
             {
                 auto handler = RequestHandler::CreateByName(config_out.statements_[i]->tokens_[1]);
                 Status s = handler->Init("", *(config_out.statements_[i]->child_block.get()));
-                if (s != OK)
+                if (s != RequestHandler::Status::OK)
                 {
                     std::cerr << "Error: failed to initialize the default hanlder " << config_out.statements_[i]->tokens_[1] << ".\n";
                     return 7;

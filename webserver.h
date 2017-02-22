@@ -19,18 +19,18 @@ class Server
 {
 public:
     static Server* serverBuilder(const NginxConfig& config_out);
-	void run();
-	int getTotalRequestCount(){return totalRequestCount;}
+    void run();
+    int getTotalRequestCount(){return totalRequestCount;}
 	
 private:
     Server(const configArguments& configArgs);
-	void doAccept();
-	int parseConfig(const NginxConfig& config_out, configArguments& configArgs);
+    void doAccept();
+    int parseConfig(const NginxConfig& config_out, configArguments& configArgs);
 
-	boost::asio::io_service io_service;
-	boost::asio::ip::tcp::acceptor acceptor;
-	configArguments configContent;
-	int totalRequestCount;
+    boost::asio::io_service io_service;
+    boost::asio::ip::tcp::acceptor acceptor;
+    configArguments configContent;
+    int totalRequestCount;
 };
 
 #endif //WEBSERVER_H
