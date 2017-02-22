@@ -3,26 +3,29 @@
 
 #include <map>
 #include <boost/asio.hpp>
+#include "config_parser.h"
 #include "session.h"
+#include "request_handler.h"
 
 struct configArguments
 {
     short unsigned int port;
-    std::string static_path;
-    std::string echo_path;
-    std::map<std::string,std::string> map_path_rootdir;
+    // Key is uri prefix. Each prefix is mapped to a handler
+    std::map<std::string, RequestHandler*> handlerMapping;
+    RequestHandler* defaultHandler;
 };
 
 class Server
 {
 public:
-	Server(const configArguments& configArgs);
-	static int parseConfig(int argc, const char * argv[], configArguments& configArgs);
+    static Server* serverBuilder(const NginxConfig& config_out);
 	void run();
 	int getTotalRequestCount(){return totalRequestCount;}
 	
 private:
+    Server(const configArguments& configArgs);
 	void doAccept();
+	int parseConfig(const NginxConfig& config_out, configArguments& configArgs);
 
 	boost::asio::io_service io_service;
 	boost::asio::ip::tcp::acceptor acceptor;
