@@ -6,5 +6,9 @@ path /static StaticHandler {
 
 path /echo EchoHandler {}
 
+path /status StatusHandler {
+  root ./test_folder;
+}
+
 # Default response handler if no handlers match.
 default NotFoundHandler {}

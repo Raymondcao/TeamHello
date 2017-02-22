@@ -4,7 +4,6 @@
 #include <map>
 #include <boost/asio.hpp>
 #include "config_parser.h"
-#include "session.h"
 #include "request_handler.h"
 
 struct configArguments

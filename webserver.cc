@@ -1,4 +1,5 @@
 #include "webserver.h"
+#include "session.h"
 #include <string>
 #include <memory>
 #include <vector>

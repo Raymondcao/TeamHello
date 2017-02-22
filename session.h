@@ -1,6 +1,7 @@
 #ifndef HTTP_REQUEST_HANDLER_H
 #define HTTP_REQUEST_HANDLER_H
 
+#include "webserver.h"
 #include <boost/asio.hpp>
 #include <string>
 #include <memory>
@@ -16,14 +17,10 @@ using namespace boost::system;
 using namespace boost::asio;
 
 
-/// The common handler for all incoming requests.
+/// The common session for all incoming requests.
 
 class session
 {
-   asio::streambuf buff;
-   reply_static re_static;
-   reply_echo re_echo;
-
 public:
    
    static void read_body(std::shared_ptr<session> pThis);
@@ -36,28 +33,21 @@ public:
 
    std::string read_next_line_text(std::istream & stream, std::string & line, std::string & ignore);
 
-   char data[4096];
-
-   size_t length;
-
    std::string ss = "";
-
-   std::string echo_map, static_map;
-
-   std::map<std::string, std::string> base_path;
+   
+   configArguments configContent;
 
    ip::tcp::socket socket;
    
-   session(io_service& io_service, std::map<std::string,std::string> base_dir, std::string echo_path, std::string static_path)
+   session(io_service& io_service, const configArguments& configContent)
       :socket(io_service)
    {
-	this->base_path = base_dir;
-	this->echo_map = echo_path;
-	this->static_map = static_path;
-	
+       this->configContent = configContent;
    }
    
    static void read_request(std::shared_ptr<session> pThis);
+private:
+    asio::streambuf buff;
 };
 
 
