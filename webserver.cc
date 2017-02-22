@@ -73,9 +73,9 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
             }
             else
             {
-                std::string path = config_out.statements_[i]->tokens_[1];
+                std::string uri_prefix = config_out.statements_[i]->tokens_[1];
                 std::string requestHandlerName = config_out.statements_[i]->tokens_[2];
-                handlerPathMap[requestHandlerName].push_back(path);
+                handlerPathMap[requestHandlerName].push_back(uri_prefix);
             }
         }
     }
@@ -102,7 +102,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
             std::string header = config_out.statements_[i]->tokens_[0];
             if (header == "path" && config_out.statements_[i]->tokens_[2] == it->first)
             {
-                if (eliminate[it->first].find(config_out.statements_[i]->tokens_[1]) == eliminate.end())
+                if (std::find(eliminate[it->first].begin(), eliminate[it->first].end(), config_out.statements_[i]->tokens_[1]) == eliminate.end())
                 {
                     auto handler = RequestHandler::CreateByName(it->first);
                     Status s = handler->Init(config_out.statements_[i]->tokens_[1], *(config_out.statements_[i]->child_block.get()));
@@ -124,7 +124,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
         std::string header = config_out.statements_[i]->tokens_[0];
         if (header == "port")
         {
-            if (config_out.statements_[i]->tokens_.size() > 1 && std::all_of(config_out.statements_[i]->tokens_[1].begin(), config_out.statements_[i]->tokens_[1].end(), ::isdigit))
+            if (config_out.statements_[i]->tokens_.size() == 2 && std::all_of(config_out.statements_[i]->tokens_[1].begin(), config_out.statements_[i]->tokens_[1].end(), ::isdigit))
             {
                 unsigned int tmpPort = std::stoi(config_out.statements_[i]->tokens_[1]);
                 if (tmpPort > 65535 || tmpPort < 0)
