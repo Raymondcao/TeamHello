@@ -20,12 +20,12 @@ int main(int argc, const char * argv[])
         std::cerr << "Error: failed to parse the config file.\n";
         return 2;
     }
-    auto server = std::auto_ptr<Server>(Server::serverBuilder(config_out));
-    if (server.get() == nullptr)
+    auto server = Server::serverBuilder(config_out);
+    if (server == nullptr)
     {
         std::cerr << "Error: cannot create server due to wrong config file format.\n";
         return 3;
     }
-    (server.get())->run();
+    server->run();
     return 0;
 }

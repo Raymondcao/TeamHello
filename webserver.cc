@@ -14,15 +14,22 @@ using namespace boost::asio;
 
 class session;
 
+Server* Server::serverInstance = nullptr;
+
 Server* Server::serverBuilder(const NginxConfig& config_out)
 {
+    if (serverInstance != nullptr)
+    {
+        return serverInstance;
+    }
     configArguments configContents;
     int configParsingErrorCode = Server::parseConfig(config_out, configContents);
     if (configParsingErrorCode != 0)
     {
         return nullptr;
     }
-    return new Server(configContents);
+    serverInstance = new Server(configContents);
+    return serverInstance;
 }
 
 Server::Server(const configArguments& configArgs)
@@ -56,70 +63,7 @@ void Server::run()
 }
 
 int Server::parseConfig(const NginxConfig& config_out, configArguments& configArgs)
-{
-    // Use longest prefix matching to parse each statement whose header
-    // is "path"
-    // TODO: modify the algorithm so that it's more efficient
-    std::map<std::string, std::vector<std::string> > handlerPathMap;
-    std::map<std::string, std::vector<std::string> > eliminate;
-    for (int i = 0; i < config_out.statements_.size(); i++)
-    {
-        std::string header = config_out.statements_[i]->tokens_[0];
-        if (header == "path")
-        {
-            if (config_out.statements_[i]->tokens_.size() != 3)
-            {
-                std::cerr << "Error: argument is lacking or too much in statement " << i << "\n";
-                return 2;
-            }
-            else
-            {
-                std::string uri_prefix = config_out.statements_[i]->tokens_[1];
-                std::string requestHandlerName = config_out.statements_[i]->tokens_[2];
-                handlerPathMap[requestHandlerName].push_back(uri_prefix);
-            }
-        }
-    }
-    for (std::map<std::string, std::vector<std::string> >::iterator it = handlerPathMap.begin(); it != handlerPathMap.end(); ++it)
-    {
-        std::sort(it->second.begin(), it->second.end());
-        for (int i = 0; i < it->second.size() - 1; i++)
-        {
-            if ((it->second)[i] == (it->second)[i + 1])
-            {
-                std::cerr << "Error: there is a repetitive path for request handler " << it->first << ".\n";
-                return 3;
-            }
-            if (it->second[i].size() < it->second[i + 1].size() && it->second[i] == it->second[i + 1].substr(0, it->second[i].size()))
-            {
-                eliminate[it->first].push_back((it->second)[i]);
-            }
-        }
-    }
-    for (std::map<std::string, std::vector<std::string> >::iterator it = handlerPathMap.begin(); it != handlerPathMap.end(); ++it)
-    {
-        for (int i = 0; i < config_out.statements_.size(); i++)
-        {
-            std::string header = config_out.statements_[i]->tokens_[0];
-            if (header == "path" && config_out.statements_[i]->tokens_[2] == it->first)
-            {
-                if (std::find(eliminate[it->first].begin(), eliminate[it->first].end(), config_out.statements_[i]->tokens_[1]) == eliminate[it->first].end())
-                {
-                    auto handler = RequestHandler::CreateByName(it->first);
-                    Status s = handler->Init(config_out.statements_[i]->tokens_[1], *(config_out.statements_[i]->child_block.get()));
-                    if (s != RequestHandler::Status::OK)
-                    {
-                        std::cerr << "Error: failed to initialize request handler " << it->first << " for " << config_out.statements_[i]->tokens_[1] << ".\n";
-                        return 4;
-                    }
-                    (configArgs.handlerMapping)[config_out.statements_[i]->tokens_[1]] = handler;
-                }
-            }
-        }
-    }
-    
-    
-    // Parse port and default request handler
+{   
     for (int i = 0; i < config_out.statements_.size(); i++)
     {
         std::string header = config_out.statements_[i]->tokens_[0];
@@ -131,14 +75,33 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
                 if (tmpPort > 65535 || tmpPort < 0)
                 {
                     std::cerr << "The port number " << tmpPort << " in config file is invalid.\n";
-                    return 5;
+                    return 1;
                 }
                 configArgs.port = (short unsigned int)tmpPort;
             }
             else
             {
                 std::cerr << "Please specify a port number.\n";
-                return 6;
+                return 2;
+            }
+        }
+        else if (header == "path")
+        {
+            if (config_out.statements_[i]->tokens_.size() == 3)
+            {
+                auto handler = RequestHandler::CreateByName(config_out.statements_[i]->tokens_[2]);
+                Status s = handler->Init(config_out.statements_[i]->tokens_[1], *(config_out.statements_[i]->child_block.get()));
+                if (s != RequestHandler::OK)
+                {
+                    std::cerr << "Error: failed to initialize request handler " << it->first << " for " << config_out.statements_[i]->tokens_[1] << ".\n";
+                    return 3;
+                }
+                (configArgs.handlerMapping)[config_out.statements_[i]->tokens_[1]] = handler;
+            }
+            else
+            {
+                std::cerr << "Error: argument is lacking or too much in statement " << i << "\n";
+                return 4;
             }
         }
         else if (header == "default")
@@ -150,20 +113,20 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
                 if (s != RequestHandler::Status::OK)
                 {
                     std::cerr << "Error: failed to initialize the default hanlder " << config_out.statements_[i]->tokens_[1] << ".\n";
-                    return 7;
+                    return 5;
                 }
                 configArgs.defaultHandler = handler;
             }
             else
             {
                 std::cerr << "Error: wrong format for default request handler.\n";
-                return 8;
+                return 6;
             }
         }
-        else if (header != "path")
+        else
         {
             std::cerr << "Error: unrecognized header: " << header << ".\n";
-            return 9;
+            return 7;
         }
     }
     return 0;

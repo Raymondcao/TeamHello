@@ -21,6 +21,7 @@ public:
     void run();
     int getTotalRequestCount(){return totalRequestCount;}
     static int parseConfig(const NginxConfig& config_out, configArguments& configArgs);
+    static Server* getServerInstance(){return serverInstance;}
 	
 private:
     Server(const configArguments& configArgs);
@@ -30,6 +31,7 @@ private:
     boost::asio::ip::tcp::acceptor acceptor;
     configArguments configContent;
     int totalRequestCount;
+    static Server* serverInstance;
 };
 
 #endif //WEBSERVER_H
