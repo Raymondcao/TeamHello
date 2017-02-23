@@ -6,29 +6,36 @@
 #include <cstdlib>
 #include <utility>
 #include <algorithm>
+#include "session.h"
 
 using namespace boost;
 using namespace boost::system;
 using namespace boost::asio;
 
-class session;
+Server *Server::serverInstance = nullptr;
 
 Server* Server::serverBuilder(const NginxConfig& config_out)
 {
+    if (serverInstance != nullptr)
+    {
+        return serverInstance;
+    }
     configArguments configContents;
-    int configParsingErrorCode = parseConfig(config_out, configContents);
+    serverStatistics serverStats;
+    int configParsingErrorCode = parseConfig(config_out, configContents, serverStats);
     if (configParsingErrorCode != 0)
     {
         return nullptr;
     }
-    return new Server(configContents);
+    serverInstance = new Server(configContents, serverStats);
+    return serverInstance;
 }
 
-Server::Server(const configArguments& configArgs)
+Server::Server(configArguments configArgs, serverStatistics serverStats)
 : io_service()
 , acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port))
 , configContent(configArgs)
-, totalRequestCount(0)
+, serverStats(serverStats)
 {
     (this->acceptor).listen();
     doAccept();
@@ -36,7 +43,6 @@ Server::Server(const configArguments& configArgs)
 
 void Server::doAccept()
 {
-    totalRequestCount++;
     std::shared_ptr<session> sesh = std::make_shared<session>(io_service, configContent.handlerMapping, configContent.defaultHandler);
     acceptor.async_accept(sesh->socket, [sesh, this](const error_code& accept_error)
     {
@@ -54,9 +60,27 @@ void Server::run()
     io_service.run();
 }
 
-int Server::parseConfig(const NginxConfig& config_out, configArguments& configArgs)
+int Server::parseConfig(const NginxConfig& config_out, configArguments& configArgs, serverStatistics& serverStats)
 {
-    
+    // Return error if there is repetitive uri_prefix
+    std::vector<std::string> checkRepetition;
+    for (int i = 0; i < config_out.statements_.size(); i++)
+    {
+        std::string header = config_out.statements_[i]->tokens_[0];
+        if (header == "path" && config_out.statements_[i]->tokens_.size() == 3)
+        {
+            checkRepetition.push_back(config_out.statements_[i]->tokens_[1]);
+        }
+    }
+    std::sort(checkRepetition.begin(), checkRepetition.end());
+    for (int i = 0; i < checkRepetition.size() - 1; i++)
+    {
+        if (checkRepetition[i] == checkRepetition[i + 1])
+        {
+            std::cerr << "Error: The url prefix " << checkRepetition[i] << " in config file is repetitive.\n";
+            return 9;
+        }
+    }
     
     // Parse port and default request handler
     for (int i = 0; i < config_out.statements_.size(); i++)
@@ -84,7 +108,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
 	{
 	    if (config_out.statements_[i]->tokens_.size() == 3)
             {
-		std::string handler_name_ = config_out.statements_[i]->tokens_[2];
+		        std::string handler_name_ = config_out.statements_[i]->tokens_[2];
                 auto handler = RequestHandler::CreateByName(handler_name_.c_str());
                 RequestHandler::Status s = handler->Init(config_out.statements_[i]->tokens_[1], *(config_out.statements_[i]->child_block_.get()));
                 if (s != RequestHandler::OK)
@@ -93,6 +117,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
                     return 3;
                 }
                 (configArgs.handlerMapping)[config_out.statements_[i]->tokens_[1]] = handler;
+                serverStats.uri_prefix2request_handler_name[handler_name_].push_back(config_out.statements_[i]->tokens_[1]);
             }
             else
             {

@@ -8,7 +8,7 @@ import re
 
 HOSTNAME = "localhost"
 PORT = 8080
-CONFIGFILENAME = "SimpleConfig"
+CONFIGFILENAME = "config"
 
 def testCasesGenerator(url, method, expected_body, case_number):
     connection = httplib.HTTPConnection(HOSTNAME, PORT)
@@ -46,7 +46,7 @@ def testCase3():
 
 def main():
     
-    Popen(["./webserver", "SimpleConfig"])
+    Popen(["./webserver", CONFIGFILENAME])
     pid = check_output(["pidof", "-s", "./webserver"])
     testCase1()
     testCase2()
