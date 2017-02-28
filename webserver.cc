@@ -8,6 +8,7 @@
 #include <fstream>
 #include <algorithm>
 #include "session.h"
+#include "proxy_handler.h"
 
 using namespace boost;
 using namespace boost::system;
@@ -41,6 +42,13 @@ Server::Server(configArguments configArgs, std::map<std::string, std::vector<std
 , tmp_log("")
 {
     (this->acceptor).listen();
+
+    if (configArgs.port_proxy!=0)
+    {
+        this->acceptor_proxy=new boost::asio::ip::tcp::acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port_proxy));
+        (this->acceptor_proxy).listen();
+    }
+
     doAccept();
 }
 
@@ -56,6 +64,18 @@ void Server::doAccept()
         }
         doAccept();
     });
+
+    if (this->acceptor_proxy!=nullptr)
+    {
+        acceptor_proxy.async_accept(sesh->socket, [sesh, this](const error_code& accept_error)
+        {
+            if(!accept_error)
+            {
+                session::read_request(sesh);
+            }
+            doAccept();
+        });    
+    }
 }
 
 void Server::run()
@@ -161,6 +181,11 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
                 }
                 (configArgs.handlerMapping)[config_out.statements_[i]->tokens_[1]] = handler;
                 uri_prefix2request_handler_name[handler_name_].push_back(config_out.statements_[i]->tokens_[1]);
+
+                if (handler_name_=="ProxyHandler")
+                {
+                    configArgs.port_proxy = (* ProxyHandler) handler->getPort();                    
+                }
             }
             else
             {

@@ -14,6 +14,7 @@
 struct configArguments
 {
     short unsigned int port;
+    short unsigned int port_proxy=0;
     // Key is uri prefix. Each prefix is mapped to a handler
     std::map<std::string, RequestHandler*> handlerMapping;
     RequestHandler* defaultHandler;
@@ -37,6 +38,7 @@ private:
 
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::acceptor acceptor;
+    boost::asio::ip::tcp::acceptor acceptor_proxy;
     configArguments configContent;
     std::map<std::string, std::vector<std::string> > uri_prefix2request_handler_name;
     std::string log;
