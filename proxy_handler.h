@@ -30,6 +30,15 @@ class ProxyHandler : public RequestHandler {
   // HTTP code 500.
   virtual Status HandleRequest(const Request& request,
                                Response* response);
+
+  short unsigned int getPort(){
+    return port;
+  }
+
+private:
+  std::string redir_addr;
+  std::string prefix;
+  short unsigned int port;
 };
 
 REGISTER_REQUEST_HANDLER(ProxyHandler);

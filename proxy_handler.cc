@@ -8,7 +8,24 @@ std::string path;
 RequestHandler::Status ProxyHandler::Init(const std::string& uri_prefix, 
               const NginxConfig& config);	path = config_map.at("path")
 {
-    return RequestHandler::Status::OK;
+    if (config.statements_[0]->tokens_[0] == "proxy" && config.statements_[0]->tokens_.size() == 2)
+    {
+        this->redir_addr = config.statements_[0]->tokens_[1];
+        this->prefix = uri_prefix;
+
+        if (config.statements_[1]->tokens_[0] == "port" && config.statements_[1]->tokens_.size() == 2)
+        {
+            unsigned int tmpPort = std::stoi(config_out.statements_[i]->tokens_[1]);
+            if (tmpPort > 65535 || tmpPort < 0)
+            {
+                std::cerr << "The port number " << tmpPort << " in config file is invalid.\n";
+                return RequestHandler::Status::FAILED;
+            }
+            this->port = (short unsigned int)tmpPort;
+            return RequestHandler::Status::OK;
+        }
+    }
+    return RequestHandler::Status::FAILED;
 }
 
 Status ProxyHandler::Replace(std::string& str,
