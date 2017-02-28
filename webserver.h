@@ -43,6 +43,7 @@ private:
     std::map<std::string, std::vector<std::string> > uri_prefix2request_handler_name;
     std::string log;
     std::string tmp_log;
+    bool proxy_switch;
     
     static Server *serverInstance;
 };

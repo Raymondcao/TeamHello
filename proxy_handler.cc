@@ -1,4 +1,12 @@
 #include "request_handler.h"
+#include "proxy_handler.h"
+#include <boost/asio.hpp>
+#include <memory>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstdlib>
+#include <utility>
 
 #include <boost/algorithm/string.hpp>
 
@@ -12,7 +20,7 @@ RequestHandler::Status ProxyHandler::Init(const std::string& uri_prefix,
 
         if (config.statements_[1]->tokens_[0] == "port" && config.statements_[1]->tokens_.size() == 2)
         {
-            unsigned int tmpPort = std::stoi(config_out.statements_[i]->tokens_[1]);
+            unsigned int tmpPort = std::stoi(config.statements_[1]->tokens_[1]);
             if (tmpPort > 65535 || tmpPort < 0)
             {
                 std::cerr << "The port number " << tmpPort << " in config file is invalid.\n";
@@ -23,16 +31,6 @@ RequestHandler::Status ProxyHandler::Init(const std::string& uri_prefix,
         }
     }
     return RequestHandler::Status::FAILED;
-}
-
-Status ProxyHandler::Replace(std::string& str,
-			     const std::string& from,
-			     const std::string& to) {
-  size_t start_pos = str.find(from);
-  if(start_pos == std::string::npos)
-    return false;
-  str.replace(start_pos, from.length(), to);
-  return true;
 }
 
 // Handles an HTTP request. Writes the response to the HttpResponse object,
@@ -65,7 +63,7 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
 	// Modify the raw request to reflect the modified URI
 	std::string rawrequest = request.raw_request();
 	size_t firstNewline = rawrequest.find("\r\n");
-	if (firstNewline == std::string::npos) return false; // request was malformed
+	if (firstNewline == std::string::npos) return RequestHandler::Status::FAILED; // request was malformed
 
 	// We need to add a slash to the beginning of requestpath to standardize.
 	if (requestpath.length() == 0 || requestpath[0] != '/') {
@@ -80,14 +78,14 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
 
 	// Take out the second line of the request then add back in the modified host
 	size_t secondNewline = restrequest.find("\r\n", 1);
-	if (secondNewline == std::string::npos) return false; // request was malformed
+	if (secondNewline == std::string::npos) return RequestHandler::Status::FAILED; // request was malformed
 	restrequest = restrequest.substr(
 	secondNewline, restrequest.length() - secondNewline);
 	std::string newSecondLine = "Host: " + this->redir_addr;
 
 	boost::trim(newFirstLine);
 	boost::trim(newSecondLine);
-	if (restrequest[0] != '\r') return false;
+	if (restrequest[0] != '\r') return RequestHandler::Status::FAILED;
 
 	rawrequest = newFirstLine + "\r\n" + newSecondLine + "\r\n" +
 	"Accept: */*\r\n" + "Connection: close\r\n\r\n";
@@ -104,9 +102,11 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
     // Read in the first line
     std::string http_version_, reason_phrase_;
     Response::ResponseCode status_code_;
+    int status_code_tmp;
     respStream >> http_version_;
-    respStream >> status_code_;
-    response.SetStatus(status_code_);
+    respStream >> status_code_tmp;
+    status_code_ = static_cast<Response::ResponseCode>(status_code_tmp);
+    response->SetStatus(status_code_);
     std::getline(respStream, reason_phrase_);
     // boost::trim(reason_phrase_);
 
@@ -116,7 +116,7 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
     std::string header;
     while (std::getline(respStream, header) && header != "\r") {
       size_t splitLoc = header.find(":");
-      if (splitLoc == std::string::npos) return false; // header was malformed
+      if (splitLoc == std::string::npos) return RequestHandler::Status::FAILED; // header was malformed
 
       std::string key = header.substr(0, splitLoc);
       std::string val = header.substr(splitLoc+2, header.length() - splitLoc);

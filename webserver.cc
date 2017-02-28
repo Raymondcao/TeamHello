@@ -39,14 +39,17 @@ Server::Server(configArguments configArgs, std::map<std::string, std::vector<std
 , configContent(configArgs)
 , uri_prefix2request_handler_name(uri_prefix2request_handler_name)
 , log("")
-, tmp_log("")
+, tmp_log("");
 {
     (this->acceptor).listen();
 
     if (configArgs.port_proxy!=0)
     {
-        this->acceptor_proxy=new boost::asio::ip::tcp::acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port_proxy));
+        this->proxy_switch=true;
+        this->acceptor_proxy=ip::tcp::acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port_proxy));
         (this->acceptor_proxy).listen();
+    }else{
+        this->proxy_switch=false;
     }
 
     doAccept();
@@ -65,7 +68,7 @@ void Server::doAccept()
         doAccept();
     });
 
-    if (this->acceptor_proxy!=nullptr)
+    if (this->proxy_switch)
     {
         acceptor_proxy.async_accept(sesh->socket, [sesh, this](const error_code& accept_error)
         {
@@ -184,7 +187,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
 
                 if (handler_name_=="ProxyHandler")
                 {
-                    configArgs.port_proxy = (* ProxyHandler) handler->getPort();                    
+                    configArgs.port_proxy = ((ProxyHandler *) handler)->getPort();           
                 }
             }
             else
