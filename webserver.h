@@ -14,10 +14,11 @@
 struct configArguments
 {
     short unsigned int port;
-    short unsigned int port_proxy=0;
+    short unsigned int port_proxy=80;
     // Key is uri prefix. Each prefix is mapped to a handler
     std::map<std::string, RequestHandler*> handlerMapping;
     RequestHandler* defaultHandler;
+    bool proxy_on=false;
 };
 
 class Server
@@ -43,8 +44,9 @@ private:
     std::map<std::string, std::vector<std::string> > uri_prefix2request_handler_name;
     std::string log;
     std::string tmp_log;
-    bool proxy_switch;
-    
+
+    bool proxy_switch=false;
+
     static Server *serverInstance;
 };
 

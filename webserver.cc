@@ -40,17 +40,15 @@ Server::Server(configArguments configArgs, std::map<std::string, std::vector<std
 , uri_prefix2request_handler_name(uri_prefix2request_handler_name)
 , log("")
 , tmp_log("")
-, acceptor_proxy(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port))
+, acceptor_proxy(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port_proxy))
 {
     (this->acceptor).listen();
 
-    if (configArgs.port_proxy!=0)
+    if (configArgs.proxy_on)
     {
         this->proxy_switch=true;
-        this->acceptor_proxy=ip::tcp::acceptor(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port_proxy));
+        printf("proxy port: %d\n", configArgs.port_proxy);
         (this->acceptor_proxy).listen();
-    }else{
-        this->proxy_switch=false;
     }
 
     doAccept();
@@ -188,7 +186,8 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
 
                 if (handler_name_=="ProxyHandler")
                 {
-                    configArgs.port_proxy = ((ProxyHandler *) handler)->getPort();           
+                    configArgs.port_proxy = ((ProxyHandler *) handler)->getPort();
+                    configArgs.proxy_on = true;           
                 }
             }
             else
