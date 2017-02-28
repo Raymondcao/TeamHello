@@ -187,7 +187,7 @@ int Server::parseConfig(const NginxConfig& config_out, configArguments& configAr
                 if (handler_name_=="ProxyHandler")
                 {
                     configArgs.port_proxy = ((ProxyHandler *) handler)->getPort();
-                    configArgs.proxy_on = true;           
+                    configArgs.proxy_on = true;
                 }
             }
             else

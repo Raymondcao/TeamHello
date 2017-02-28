@@ -71,10 +71,8 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
 	}
 
 	// Take out the first line of the request then add back in the modified URI
-	std::string restrequest = rawrequest.substr(
-	firstNewline, rawrequest.length() - firstNewline);
-	std::string newFirstLine = 
-	request.method() + " " + requestpath + " HTTP/1.1";
+	std::string restrequest = rawrequest.substr(firstNewline, rawrequest.length() - firstNewline);
+	std::string newFirstLine = 	request.method() + " / " +  + " HTTP/1.1";
 
 	// Take out the second line of the request then add back in the modified host
 	size_t secondNewline = restrequest.find("\r\n", 1);
@@ -105,7 +103,11 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
     int status_code_tmp;
     respStream >> http_version_;
     respStream >> status_code_tmp;
-    status_code_ = static_cast<Response::ResponseCode>(status_code_tmp);
+    if (status_code_tmp == 200){
+      status_code_=Response::ResponseCode::moved_temporarily;
+    }else{
+      status_code_ = static_cast<Response::ResponseCode>(status_code_tmp);
+    }
     response->SetStatus(status_code_);
     std::getline(respStream, reason_phrase_);
     // boost::trim(reason_phrase_);
