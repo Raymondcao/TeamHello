@@ -4,7 +4,7 @@ CXXFLAGS= -g -Wall -pthread -std=c++11 $(CXXOPTIMIZE)
 GTEST_DIR=googletest/googletest
 SERVERCLASSES=config_parser.cc
 
-default:  config_parser config_parser_test request_handler.o echo_handler.o file_handler.o not_found_handler.o status_handler.o request.o response.o mime_types.o session.o  echo_handler_test file_handler_test not_found_handler_test response_test request_test session_test webserver
+default:  config_parser config_parser_test request_handler.o echo_handler.o file_handler.o not_found_handler.o status_handler.o proxy_handler.o request.o response.o mime_types.o session.o  echo_handler_test file_handler_test not_found_handler_test response_test request_test session_test webserver
 
 file_handler.o: file_handler.cc file_handler.h request_handler.h mime_types.h mime_types.cc response.cc response.h request.cc request.h
 	g++ -c -std=c++11 file_handler.cc -lboost_system
@@ -34,7 +34,7 @@ mime_types.o: mime_types.cc mime_types.h
 	g++ -c -std=c++11 mime_types.cc
 
 webserver: webserver.h webserver.cc webserver_main.cc config_parser.h config_parser.cc session.h request_handler.o session.o mime_types.o file_handler.o echo_handler.o not_found_handler.o status_handler.o proxy_handler.o request.o response.o
-	g++ webserver.h webserver.cc webserver_main.cc config_parser.cc request_handler.o session.o mime_types.o file_handler.o echo_handler.o not_found_handler.o status_handler.o request.o response.o -I /usr/local/Cellar/boost/1.54.0/include -std=c++11 -lboost_system -o webserver
+	g++ webserver.h webserver.cc webserver_main.cc config_parser.cc request_handler.o session.o mime_types.o file_handler.o echo_handler.o not_found_handler.o status_handler.o proxy_handler.o request.o response.o -I /usr/local/Cellar/boost/1.54.0/include -std=c++11 -lboost_system -lpthread -lboost_thread -o webserver
 
 
 config_parser: config_parser.cc config_parser_main.cc
@@ -77,12 +77,12 @@ response_test:
 session_test:
 	g++ -std=c++11 -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -lboost_system
 	ar -rv libgtest.a gtest-all.o
-	g++ -std=c++11 -isystem ${GTEST_DIR}/include -pthread session_test.cc request_handler.cc request_handler.h session.cc session.h mime_types.cc file_handler.cc echo_handler.cc not_found_handler.cc request.cc response.cc webserver.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o session_test -lboost_system
+	g++ -std=c++11 -isystem ${GTEST_DIR}/include -pthread session_test.cc request_handler.cc request_handler.h session.cc session.h mime_types.cc file_handler.cc echo_handler.cc not_found_handler.cc proxy_handler.cc request.cc response.cc webserver.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o session_test -lboost_system
 
 webserver_test:
 	g++ -std=c++11 -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -lboost_system
 	ar -rv libgtest.a gtest-all.o
-	g++ -std=c++11 -isystem ${GTEST_DIR}/include -pthread webserver_test.cc webserver.cc config_parser.cc request_handler.cc session.cc mime_types.cc file_handler.cc echo_handler.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o webserver_test -lboost_system
+	g++ -std=c++11 -isystem ${GTEST_DIR}/include -pthread webserver_test.cc webserver.cc config_parser.cc request_handler.cc session.cc mime_types.cc file_handler.cc echo_handler.cc proxy_handler.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o webserver_test -lboost_system
 
 config_parser_test:
 	g++ -std=c++11 -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc
@@ -131,7 +131,7 @@ test_coverage:
 
 	g++ -std=c++11 -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -lboost_system
 	ar -rv libgtest.a gtest-all.o
-	g++ -std=c++11 -isystem ${GTEST_DIR}/include -pthread session_test.cc request_handler.cc session.cc mime_types.cc file_handler.cc echo_handler.cc not_found_handler.cc request.cc response.cc webserver.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o session_test -lboost_system -fprofile-arcs -ftest-coverage
+	g++ -std=c++11 -isystem ${GTEST_DIR}/include -pthread session_test.cc request_handler.cc session.cc mime_types.cc file_handler.cc echo_handler.cc not_found_handler.cc proxy_handler.cc request.cc response.cc webserver.cc ${GTEST_DIR}/src/gtest_main.cc libgtest.a -o session_test -lboost_system -fprofile-arcs -ftest-coverage
 	./session_test; gcov -r session.cc
 
 

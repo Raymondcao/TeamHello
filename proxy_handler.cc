@@ -1,5 +1,3 @@
-#include "request_handler.h"
-#include "proxy_handler.h"
 #include <boost/asio.hpp>
 #include <memory>
 #include <iostream>
@@ -7,8 +5,10 @@
 #include <sstream>
 #include <cstdlib>
 #include <utility>
-
 #include <boost/algorithm/string.hpp>
+
+#include "request_handler.h"
+#include "proxy_handler.h"
 
 RequestHandler::Status ProxyHandler::Init(const std::string& uri_prefix, 
               const NginxConfig& config)

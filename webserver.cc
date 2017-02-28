@@ -39,7 +39,8 @@ Server::Server(configArguments configArgs, std::map<std::string, std::vector<std
 , configContent(configArgs)
 , uri_prefix2request_handler_name(uri_prefix2request_handler_name)
 , log("")
-, tmp_log("");
+, tmp_log("")
+, acceptor_proxy(io_service, ip::tcp::endpoint(ip::tcp::v4(), configArgs.port))
 {
     (this->acceptor).listen();
 
