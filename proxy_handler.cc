@@ -2,11 +2,8 @@
 
 #include <boost/algorithm/string.hpp>
 
-std::string proxy;
-std::string path;
-
 RequestHandler::Status ProxyHandler::Init(const std::string& uri_prefix, 
-              const NginxConfig& config);	path = config_map.at("path")
+              const NginxConfig& config)
 {
     if (config.statements_[0]->tokens_[0] == "proxy" && config.statements_[0]->tokens_.size() == 2)
     {
@@ -42,12 +39,6 @@ Status ProxyHandler::Replace(std::string& str,
 // and returns true if the request was handled successfully. If the return value
 // is false, then the HttpResponse object is invalid and should not be used.
 //
-// Each config block has a special config named "path" that determines
-// the path prefix for which the handler will be called.
-//
-// For example, the config "handler proxy { path /proxy; }" means that an echo
-// handler will be called for all requests whose URI paths start with "/proxy".
-//
 // The dispatch mechanism is implemented in the main server code.
 RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
                                Response* response)
@@ -59,7 +50,7 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
 
 	// Get a list of endpoints corresponding to the server name.
 	tcp::resolver resolver(io_service);
-	tcp::resolver::query query(proxy, to_string(80));
+	tcp::resolver::query query(this->redir_addr, to_string(80));
 	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 	tcp::resolver::iterator end;
 
@@ -69,7 +60,7 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
 	std::string requestpath = request.uri();
 	if (requestpath.length() > 0 && requestpath[0] != '/')
 	requestpath = "/" + requestpath;
-	std::string requestURL = proxy;
+	std::string requestURL = this->redir_addr;
 
 	// Modify the raw request to reflect the modified URI
 	std::string rawrequest = request.raw_request();
@@ -92,7 +83,7 @@ RequestHandler::Status ProxyHandler::HandleRequest(const Request& request,
 	if (secondNewline == std::string::npos) return false; // request was malformed
 	restrequest = restrequest.substr(
 	secondNewline, restrequest.length() - secondNewline);
-	std::string newSecondLine = "Host: " + proxy;
+	std::string newSecondLine = "Host: " + this->redir_addr;
 
 	boost::trim(newFirstLine);
 	boost::trim(newSecondLine);
